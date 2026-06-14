@@ -10,9 +10,15 @@ export async function saveUpload(file: File, prefix = ""): Promise<string> {
   const filename = `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) {
+  // Use Vercel Blob whenever a token exists OR we're running on Vercel (the
+  // serverless filesystem is read-only, so disk writes would fail there).
+  if (token || process.env.VERCEL) {
     const { put } = await import("@vercel/blob");
-    const blob = await put(filename, file, { access: "public", token, contentType: file.type });
+    const blob = await put(filename, file, {
+      access: "public",
+      contentType: file.type,
+      ...(token ? { token } : {}),
+    });
     return blob.url;
   }
 

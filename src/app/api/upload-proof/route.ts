@@ -16,9 +16,14 @@ export async function POST(req: Request) {
   if (!ALLOWED.includes(file.type)) return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   if (file.size > MAX) return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
 
-  const url = await saveUpload(file, "proof-");
-  await prisma.mediaAsset.create({
-    data: { filename: file.name, url, mime: file.type, size: file.size, alt: "Payment proof" },
-  });
-  return NextResponse.json({ url });
+  try {
+    const url = await saveUpload(file, "proof-");
+    await prisma.mediaAsset.create({
+      data: { filename: file.name, url, mime: file.type, size: file.size, alt: "Payment proof" },
+    });
+    return NextResponse.json({ url });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Upload failed";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
