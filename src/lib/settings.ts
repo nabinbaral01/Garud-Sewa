@@ -30,9 +30,13 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
 };
 
 export async function getSettings(): Promise<Record<string, string>> {
-  const rows = await prisma.setting.findMany();
   const map: Record<string, string> = { ...DEFAULT_SETTINGS };
-  for (const r of rows) map[r.key] = r.value;
+  try {
+    const rows = await prisma.setting.findMany();
+    for (const r of rows) map[r.key] = r.value;
+  } catch {
+    // DB unreachable (e.g. during build before env is set) — use defaults
+  }
   return map;
 }
 

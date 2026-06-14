@@ -10,6 +10,8 @@ import { getLang } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [places, s, banners, lang] = await Promise.all([
     getPlaceOptions(),
