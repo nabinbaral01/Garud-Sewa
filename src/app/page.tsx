@@ -1,65 +1,101 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import TopBar from "@/components/public/TopBar";
+import Footer from "@/components/public/Footer";
+import ServiceTabs from "@/components/public/ServiceTabs";
+import ServicesStrip from "@/components/public/ServicesStrip";
+import { getPlaceOptions } from "@/lib/places";
+import { getSettings } from "@/lib/settings";
+import { getLang } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
+import { prisma } from "@/lib/db";
 
-export default function Home() {
+export default async function Home() {
+  const [places, s, banners, lang] = await Promise.all([
+    getPlaceOptions(),
+    getSettings(),
+    prisma.banner.findMany({ where: { active: true }, include: { image: true }, orderBy: { sortOrder: "asc" } }),
+    getLang(),
+  ]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      <div className="relative">
+        <div className="absolute inset-0 gs-gradient" />
+        {s.heroImage && (
+          <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url(${s.heroImage})` }} />
+        )}
+        <div className="relative">
+          <TopBar light />
+          <div className="mx-auto max-w-6xl px-4 pb-24 pt-10 text-white sm:pt-16">
+            <span className="gs-chip bg-white/15 text-white">{s.taglineNe}</span>
+            <h1 className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight sm:text-5xl">
+              {s.heroTitle}
+            </h1>
+            <p className="mt-3 max-w-2xl text-white/85">{s.heroSubtitle}</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      <div className="relative z-10 mx-auto -mt-16 max-w-6xl px-4">
+        <ServiceTabs places={places} lang={lang} />
+      </div>
+
+      {/* Services */}
+      <ServicesStrip lang={lang} />
+
+      {/* Promotions */}
+      {banners.length > 0 && (
+        <section className="mx-auto mt-12 max-w-6xl px-4">
+          <h2 className="mb-4 text-xl font-bold">{t(lang, "promotions")}</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {banners.map((b) => (
+              <Link key={b.id} href={b.link || "#"} className="group relative overflow-hidden rounded-xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={b.image?.url || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1000"}
+                  alt={b.title}
+                  className="h-44 w-full object-cover transition group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                <div className="absolute bottom-0 p-4 text-white">
+                  <h3 className="text-lg font-bold">{b.title}</h3>
+                  <p className="text-sm text-white/85">{b.subtitle}</p>
+                  {b.promoCode && <span className="gs-chip mt-2 bg-white/20 text-white">Code: {b.promoCode}</span>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Popular routes */}
+      <section className="mx-auto mt-12 max-w-6xl px-4">
+        <h2 className="mb-4 text-xl font-bold">{t(lang, "popularRoutes")}</h2>
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {[
+            ["Birtamod", "Phungling"],
+            ["Charali", "Ilam Bazaar"],
+            ["Damak", "Phungling"],
+            ["Phidim", "Phungling"],
+            ["Birtamod", "Ilam Bazaar"],
+            ["Kakarbhitta", "Phungling"],
+          ].map(([from, to]) => (
+            <Link
+              key={from + to}
+              href={`/buses?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`}
+              className="gs-card flex items-center justify-between p-4 hover:shadow-md"
+            >
+              <span className="font-semibold">
+                {from} <ArrowRight size={14} className="mx-1 inline text-gsviolet" /> {to}
+              </span>
+              <span className="text-xs text-[var(--muted)]">{t(lang, "busesJeeps")}</span>
+            </Link>
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+
+      <Footer />
+    </>
   );
 }

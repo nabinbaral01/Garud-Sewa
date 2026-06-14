@@ -1,26 +1,166 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --gs-blue: #1e3a8a;
+  --gs-blue-2: #1d4ed8;
+  --gs-violet: #7c3aed;
+  --gs-violet-2: #a855f7;
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-gsblue: var(--gs-blue);
+  --color-gsviolet: var(--gs-violet);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, Arial, sans-serif;
+}
+
+.gs-gradient {
+  background: linear-gradient(120deg, var(--gs-blue) 0%, var(--gs-violet) 100%);
+}
+.gs-gradient-soft {
+  background: linear-gradient(120deg, #eef2ff 0%, #f5f3ff 100%);
+}
+.gs-text-gradient {
+  background: linear-gradient(120deg, var(--gs-blue-2), var(--gs-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* form controls */
+.gs-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: #fff;
+  font-size: 0.95rem;
+  outline: none;
+}
+.gs-input:focus {
+  border-color: var(--gs-violet);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+/* "bare" variant for inputs that sit inside a labelled card (no inner box).
+   Higher specificity than .gs-input so it wins over the unlayered base rule. */
+.gs-input.bare {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.gs-input.bare:focus {
+  box-shadow: none;
+}
+.gs-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+.gs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  border-radius: 0.6rem;
+  padding: 0.65rem 1.1rem;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.15s, transform 0.05s;
+}
+.gs-btn:active {
+  transform: translateY(1px);
+}
+.gs-btn-primary {
+  color: #fff;
+  background: linear-gradient(120deg, var(--gs-blue-2), var(--gs-violet));
+}
+.gs-btn-primary:hover {
+  filter: brightness(1.08);
+}
+.gs-btn-ghost {
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+.gs-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+}
+.gs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+/* admin */
+.admin-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.55rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+.admin-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.admin-link.active {
+  background: linear-gradient(120deg, var(--gs-blue-2), var(--gs-violet));
+  color: #fff;
+}
+
+table.gs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.gs-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+.gs-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.gs-table tr:hover td {
+  background: #fafafe;
 }

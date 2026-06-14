@@ -1,0 +1,312 @@
+// Garud Sewa — Nepal travel booking (Jhapa <-> Taplejung)
+// Postgres (Neon / Vercel Postgres). Enum-like fields are String and lists are
+// CSV / JSON strings for portability.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------- Auth ---------------------------------------
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("EDITOR") // SUPER_ADMIN | EDITOR
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  phone        String?
+  passwordHash String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
+}
+
+// --------------------------- Geography ------------------------------------
+
+model Place {
+  id       String  @id @default(cuid())
+  nameEn   String
+  nameNe   String
+  district String // Jhapa | Ilam | Panchthar | Taplejung
+  type     String  @default("city") // city | bus_park | airport | hotel_area | temple
+  lat      Float?
+  lng      Float?
+  sortOrder Int    @default(0)
+
+  hotels       Hotel[]
+  busesFrom    Bus[]    @relation("BusFrom")
+  busesTo      Bus[]    @relation("BusTo")
+  vehicles     Vehicle[]
+  routesFrom   Route[]  @relation("RouteFrom")
+  routesTo     Route[]  @relation("RouteTo")
+}
+
+model Route {
+  id         String  @id @default(cuid())
+  fromId     String
+  toId       String
+  from       Place   @relation("RouteFrom", fields: [fromId], references: [id])
+  to         Place   @relation("RouteTo", fields: [toId], references: [id])
+  distanceKm Int
+  durationMin Int
+  services   String  @default("BUS") // csv: BUS,VEHICLE
+  stops      String  @default("[]") // json array of place ids in order
+  active     Boolean @default(true)
+  buses      Bus[]
+}
+
+// ----------------------------- Buses --------------------------------------
+
+model Operator {
+  id        String  @id @default(cuid())
+  name      String
+  contact   String?
+  rating    Float   @default(4.0)
+  logoId    String?
+  logo      MediaAsset? @relation(fields: [logoId], references: [id])
+  buses     Bus[]
+}
+
+model Bus {
+  id            String  @id @default(cuid())
+  operatorId    String
+  operator      Operator @relation(fields: [operatorId], references: [id])
+  routeId       String?
+  route         Route?   @relation(fields: [routeId], references: [id])
+  fromPlaceId   String
+  fromPlace     Place    @relation("BusFrom", fields: [fromPlaceId], references: [id])
+  toPlaceId     String
+  toPlace       Place    @relation("BusTo", fields: [toPlaceId], references: [id])
+  busType       String   @default("Deluxe") // Deluxe | AC | Local | Micro | Jeep-Sharing
+  departTime    String   // "06:30"
+  arriveTime    String   // "14:00"
+  boardingPoint String
+  dropPoint     String
+  durationMin   Int      @default(0)
+  totalSeats    Int      @default(35)
+  seatLayout    String   @default("2-2") // 2-2 | 2-1
+  amenities     String   @default("") // csv
+  vehicleNumber String?  // license plate, shown for trust
+  baseFare      Int
+  // ordered stops with cumulative fare from origin:
+  // [{"name":"Birtamod","fare":0},{"name":"Rake","fare":900},{"name":"Phungling","fare":1400}]
+  stops         String   @default("[]")
+  rating        Float    @default(4.2)
+  status        String   @default("active") // active | hidden
+  bookings      Booking[]
+  reviews       Review[]
+  images        BusImage[]
+}
+
+model BusImage {
+  id        String @id @default(cuid())
+  busId     String
+  bus       Bus    @relation(fields: [busId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  sortOrder Int    @default(0)
+}
+
+// ----------------------------- Hotels -------------------------------------
+
+model Hotel {
+  id           String  @id @default(cuid())
+  name         String
+  placeId      String
+  place        Place   @relation(fields: [placeId], references: [id])
+  address      String?
+  lat          Float?
+  lng          Float?
+  starRating   Int     @default(3)
+  qualityBadge String  @default("Comfort") // Budget | Comfort | Premium | Luxury
+  descEn       String  @default("")
+  descNe       String  @default("")
+  amenities    String  @default("") // csv
+  checkInTime  String  @default("13:00")
+  checkOutTime String  @default("11:00")
+  cancellation String  @default("Free cancellation up to 24h before check-in")
+  coverImageId String?
+  coverImage   MediaAsset? @relation("HotelCover", fields: [coverImageId], references: [id])
+  status       String  @default("active") // active | hidden
+  images       HotelImage[]
+  rooms        RoomType[]
+  bookings     Booking[]
+  reviews      Review[]
+}
+
+model HotelImage {
+  id        String @id @default(cuid())
+  hotelId   String
+  hotel     Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  sortOrder Int    @default(0)
+}
+
+model RoomType {
+  id             String @id @default(cuid())
+  hotelId        String
+  hotel          Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  name           String
+  capacity       Int    @default(2)
+  beds           String @default("1 Double")
+  mealPlan       String @default("Room only") // Room only | Breakfast | Half board | Full board
+  pricePerNight  Int
+  roomsAvailable Int    @default(5)
+  bookings       Booking[]
+}
+
+// ------------------------- Car / Jeep rental ------------------------------
+
+model Vehicle {
+  id            String  @id @default(cuid())
+  model         String
+  category      String  @default("JEEP_4WD") // CAR | JEEP_4WD | VAN
+  seats         Int     @default(7)
+  transmission  String  @default("Manual") // Manual | Automatic
+  driveType     String  @default("4WD") // 2WD | 4WD
+  mileagePolicy String  @default("Unlimited mileage")
+  deposit       Int     @default(10000)
+  pricePerDay   Int
+  pickupPlaceId String?
+  pickupPlace   Place?  @relation(fields: [pickupPlaceId], references: [id])
+  withDriver    Boolean @default(true)
+  selfDrive     Boolean @default(true)
+  coverImageId  String?
+  coverImage    MediaAsset? @relation("VehicleCover", fields: [coverImageId], references: [id])
+  status        String  @default("active")
+  images        VehicleImage[]
+  bookings      Booking[]
+}
+
+model VehicleImage {
+  id        String  @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id])
+  sortOrder Int     @default(0)
+}
+
+// ----------------------------- Bookings -----------------------------------
+
+model Booking {
+  id            String   @id @default(cuid())
+  ref           String   @unique
+  serviceType   String   // BUS | HOTEL | VEHICLE
+  status        String   @default("PENDING") // PENDING | CONFIRMED | CANCELLED | COMPLETED
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+
+  // bus
+  busId       String?
+  bus         Bus?     @relation(fields: [busId], references: [id])
+  travelDate  DateTime?
+  seats       String?  // csv
+  passengers  String?  // json
+  boardFrom   String?  // segment boarding stop
+  dropTo      String?  // segment alighting stop
+
+  // hotel
+  hotelId    String?
+  hotel      Hotel?    @relation(fields: [hotelId], references: [id])
+  roomTypeId String?
+  roomType   RoomType? @relation(fields: [roomTypeId], references: [id])
+  checkIn    DateTime?
+  checkOut   DateTime?
+  rooms      Int?
+  guests     Int?
+
+  // vehicle
+  vehicleId   String?
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+  pickupDate  DateTime?
+  returnDate  DateTime?
+  withDriver  Boolean  @default(false)
+  oneWay      Boolean  @default(false)
+  dropPlace   String?
+
+  subtotal   Int      @default(0)
+  discount   Int      @default(0)
+  amount       Int      @default(0)
+  couponCode   String?
+  notes        String?
+  paymentProof String?  // URL of uploaded transaction screenshot
+  deleted      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// ------------------------------- CMS --------------------------------------
+
+model Banner {
+  id        String  @id @default(cuid())
+  title     String
+  subtitle  String  @default("")
+  imageId   String?
+  image     MediaAsset? @relation(fields: [imageId], references: [id])
+  link      String  @default("")
+  promoCode String?
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model Coupon {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  discountType String   @default("PERCENT") // PERCENT | FLAT
+  value        Int
+  active       Boolean  @default(true)
+  expiresAt    DateTime?
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  serviceType String // BUS | HOTEL
+  busId       String?
+  bus         Bus?     @relation(fields: [busId], references: [id], onDelete: Cascade)
+  hotelId     String?
+  hotel       Hotel?   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  author      String
+  rating      Int      @default(5)
+  comment     String
+  createdAt   DateTime @default(now())
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  mime      String   @default("image/jpeg")
+  size      Int      @default(0)
+  alt       String   @default("")
+  createdAt DateTime @default(now())
+
+  operators     Operator[]
+  busImages     BusImage[]
+  hotelCovers   Hotel[]        @relation("HotelCover")
+  hotelImages   HotelImage[]
+  vehicleCovers Vehicle[]      @relation("VehicleCover")
+  vehicleImages VehicleImage[]
+  banners       Banner[]
+}

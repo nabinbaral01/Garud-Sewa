@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gadur Sewa 🚌
 
-## Getting Started
+A responsive, full-stack travel-booking platform for eastern Nepal — **Buses, Hotels, and Car/Jeep
+rentals** along the Mechi Highway corridor between **Jhapa and Taplejung**. Includes a complete
+**admin panel** where everything (listings, prices, images, places, content, settings) is
+create/edit/delete-able with no coding.
 
-First, run the development server:
+Deep-blue + violet theme, bilingual (English + Nepali) labels, currency in NPR (रू).
+
+## Stack
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **Tailwind CSS v4**
+- **Prisma 6** + **SQLite** (`prisma/dev.db`) — no external services needed
+- **bcryptjs** auth with HMAC-signed cookie sessions
+- Image uploads stored on disk under `public/uploads/` (path saved in DB)
+- Icons: `lucide-react`
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:reset   # create schema + seed Jhapa–Taplejung data & admin
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Admin
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- URL: `/admin` (login at `/admin/login`)
+- Default Super Admin: `admin@gadursewa.com` / `gadur123` (from `.env` — change after first login)
+- Roles: **Super Admin** (everything) and **Editor** (listings & content, not staff/settings)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Start dev server |
+| `npm run build` | Generate Prisma client + production build |
+| `npm run db:push` | Sync schema to the SQLite DB |
+| `npm run db:seed` | Seed places, buses, hotels, vehicles, banners, admin |
+| `npm run db:reset` | Force-reset DB then seed |
 
-To learn more about Next.js, take a look at the following resources:
+## Public site
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/` — hero + icon service tabs (Buses / Hotels / Car-Jeep), trust strip, promos, popular routes
+- `/buses` → `/buses/[id]` — search, sortable results, seat map, passenger details, booking
+- `/hotels` → `/hotels/[id]` — search, gallery, room types, booking
+- `/vehicles` → `/vehicles/[id]` — filters, self-drive / with-driver, one-way drop-off, booking
+- `/booking-success?ref=…` — confirmation (book now, pay later)
+- `/about`, `/help`, `/terms`, `/account` — content pages (text editable from admin)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Admin panel (`/admin`)
 
-## Deploy on Vercel
+Dashboard (stats, charts, recent bookings) · Places · Routes · Operators · Buses · Hotels (+ room
+types & gallery) · Vehicles · Bookings (filters, status, recycle bin, CSV export) · Customers ·
+Banners/promos · Coupons · Media library (upload/URL) · Staff (Super Admin) · Settings/CMS (Super
+Admin).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Data models
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`Place, Route, Operator, Bus, Hotel, HotelImage, RoomType, Vehicle, VehicleImage, Booking, User,
+AdminUser, Banner, Setting, Coupon, MediaAsset` — see [`prisma/schema.prisma`](prisma/schema.prisma).
+
+## Notes
+
+- SQLite has no enums/arrays, so enum-like fields are `String` and lists are CSV/JSON strings.
+- Seed images use Unsplash URLs; replace them via the Media library + listing forms.
+- Payment is intentionally deferred ("book now, pay later") for phase 1.
